@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Split Screen</title>
+  <style>
+    :root {
+      --fg: #141414;
+      --muted: #6b6b6b;
+      --line: #e4e4e4;
+      --bg: #ffffff;
+      --card: #ffffff;
+      --btn: #141414;
+      --btn-fg: #ffffff;
+      --hover: #f5f5f5;
+      --header-height: 76px;
+      --divider-width: 6px;
+      color-scheme: light;
+    }
+    :root[data-theme="dark"] {
+      --fg: #f2f2f2;
+      --muted: #9a9a9a;
+      --line: #2e2e2e;
+      --bg: #121212;
+      --card: #121212;
+      --btn: #f2f2f2;
+      --btn-fg: #121212;
+      --hover: #1f1f1f;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header {
+      flex: 0 0 var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 28px;
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+      z-index: 2;
+    }
+    .heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .back-btn {
+      flex: 0 0 36px;
+      width: 36px;
+      height: 36px;
+      min-height: 36px;
+      padding: 0;
+    }
+    .back-btn svg {
+      width: 19px;
+      height: 19px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .back-btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+    .eyebrow {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 2px 0 0;
+      font-size: 23px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      min-width: 0;
+    }
+    .width-control {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    input[type="range"] {
+      width: 104px;
+      accent-color: var(--fg);
+      cursor: pointer;
+    }
+    #widthValue {
+      min-width: 31px;
+      color: var(--fg);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 8px 13px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--fg);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--hover); }
+    .btn:focus-visible, input:focus-visible, .divider:focus-visible {
+      outline: 2px solid var(--muted);
+      outline-offset: 2px;
+    }
+    .theme-icon { font-size: 15px; line-height: 1; }
+
+    main {
+      display: flex;
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      background: var(--bg);
+    }
+    .pane {
+      position: relative;
+      flex: 1 1 50%;
+      min-width: 0;
+      min-height: 0;
+      background: var(--bg);
+    }
+    .pane iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: var(--bg);
+    }
+    .divider {
+      position: relative;
+      z-index: 1;
+      flex: 0 0 var(--divider-width);
+      background: var(--line);
+      cursor: col-resize;
+      touch-action: none;
+      transition: background .12s;
+    }
+    .divider:hover, .divider:focus-visible, .divider.dragging { background: var(--fg); }
+    .divider::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: max(12px, var(--divider-width));
+      transform: translateX(-50%);
+    }
+    .placeholder {
+      position: absolute;
+      inset: 0;
+      background: var(--bg);
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 8px;
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+      pointer-events: none;
+    }
+    .placeholder strong {
+      color: var(--fg);
+      font-size: 16px;
+      font-weight: 650;
+    }
+    .placeholder span { font-size: 13px; }
+    .placeholder code {
+      padding: 2px 5px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      color: var(--fg);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    @media (max-width: 640px) {
+      :root { --header-height: 68px; }
+      .header { padding: 0 12px; gap: 8px; }
+      .eyebrow { font-size: 9px; }
+      h1 { font-size: 19px; }
+      .header-controls { gap: 6px; }
+      .width-control { gap: 5px; padding: 5px 7px; font-size: 11px; }
+      input[type="range"] { width: 58px; }
+      .btn { min-height: 32px; padding: 6px 9px; font-size: 11px; }
+      .theme-label { display: none; }
+    }
+    @media (max-width: 390px) {
+      .eyebrow { display: none; }
+      h1 { font-size: 17px; }
+      .width-label { display: none; }
+      .width-control { padding: 5px 6px; }
+      input[type="range"] { width: 52px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="heading">
+      <button class="btn back-btn" id="backButton" type="button" aria-label="Go to left URL" title="Go to left URL" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M19 12H5"></path>
+          <path d="m12 19-7-7 7-7"></path>
+        </svg>
+      </button>
+      <h1>Split Screen</h1>
+    </div>
+
+    <div class="header-controls">
+      <div class="width-control">
+        <label class="width-label" for="dividerWidth">Divider width</label>
+        <input id="dividerWidth" type="range" min="0" max="32" value="6" aria-label="Divider width">
+        <output id="widthValue" for="dividerWidth">6 px</output>
+      </div>
+      <button class="btn" id="themeToggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+        <span class="theme-icon" id="themeIcon" aria-hidden="true">☾</span>
+        <span class="theme-label" id="themeLabel">Dark mode</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="pane" aria-label="Left screen">
+      <iframe id="leftFrame" title="Left screen" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <div class="placeholder" id="leftPlaceholder">
+        <strong>Left screen</strong>
+        <span>Add a URL using <code>?l=https://example.com</code></span>
+      </div>
+    </section>
+
+    <div class="divider" id="divider" role="separator" aria-label="Screen divider" aria-orientation="vertical" tabindex="0"></div>
+
+    <section class="pane" aria-label="Right screen">
+      <iframe id="rightFrame" title="Right screen" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <div class="placeholder" id="rightPlaceholder">
+        <strong>Right screen</strong>
+        <span>Add a URL using <code>&amp;r=https://example.org</code></span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+
+    function normalizeURL(value) {
+      if (!value) return null;
+
+      try {
+        let input = value.trim();
+        if (!input) return null;
+
+        // Treat bare hostnames such as "flow.scspace.app" as HTTPS URLs,
+        // rather than resolving them as paths on the split-screen website.
+        if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(input) &&
+            !input.startsWith('//') &&
+            /^[\w-]+(?:\.[\w-]+)+(?:\:\d+)?(?:[\/?#]|$)/i.test(input)) {
+          input = 'https://' + input;
+        }
+
+        const url = new URL(input, window.location.href);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+        return url.href;
+      } catch {
+        return null;
+      }
+    }
+
+    function loadFrame(side, value) {
+      const frame = document.getElementById(side + 'Frame');
+      const placeholder = document.getElementById(side + 'Placeholder');
+      const url = normalizeURL(value);
+      if (!url) return;
+
+      frame.src = url;
+      placeholder.hidden = true;
+    }
+
+    const leftURL = normalizeURL(params.get('l'));
+    const rightURL = normalizeURL(params.get('r'));
+
+    // The back button opens the same destination used by the left iframe.
+    const backButton = document.getElementById('backButton');
+    backButton.disabled = !leftURL;
+    backButton.addEventListener('click', () => {
+      if (leftURL) window.location.assign(leftURL);
+    });
+
+    // Divider width control.
+    const slider = document.getElementById('dividerWidth');
+    const widthValue = document.getElementById('widthValue');
+    function setDividerWidth(value) {
+      const width = Math.max(0, Math.min(32, Number(value) || 0));
+      document.documentElement.style.setProperty('--divider-width', width + 'px');
+      widthValue.value = width + ' px';
+      widthValue.textContent = width + ' px';
+      slider.value = width;
+    }
+    slider.addEventListener('input', () => setDividerWidth(slider.value));
+
+    // Light/dark theme toggle. Save the selected theme before broadcasting it.
+    // Wait until every iframe with a URL has fired its load event before sending
+    // the initial theme message. Re-broadcast after later iframe navigations too.
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeLabel = document.getElementById('themeLabel');
+    const themeFrames = [
+      document.getElementById('leftFrame'),
+      document.getElementById('rightFrame')
+    ];
+    const framesToLoad = [leftURL, rightURL]
+      .map((url, index) => url ? themeFrames[index] : null)
+      .filter(Boolean);
+    const loadedFrames = new Set();
+
+    function allFramesLoaded() {
+      return framesToLoad.every(frame => loadedFrames.has(frame));
+    }
+
+    function broadcastTheme(theme) {
+      const message = theme === 'dark' ? 'dark-theme' : 'light-theme';
+      loadedFrames.forEach(frame => {
+        if (frame.contentWindow) frame.contentWindow.postMessage(message, '*');
+      });
+    }
+
+    function applyTheme(theme) {
+      const isDark = theme === 'dark';
+      document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+      themeToggle.setAttribute('aria-pressed', String(isDark));
+      themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+      themeIcon.textContent = isDark ? '☀' : '☾';
+      themeLabel.textContent = isDark ? 'Light mode' : 'Dark mode';
+    }
+
+    // Register load handlers before assigning iframe URLs, so fast loads
+    // cannot be missed.
+    themeFrames.forEach(frame => {
+      frame.addEventListener('load', () => {
+        if (!framesToLoad.includes(frame)) return;
+        loadedFrames.add(frame);
+        if (allFramesLoaded()) {
+          broadcastTheme(document.documentElement.dataset.theme || 'light');
+        }
+      });
+    });
+
+    let savedTheme = null;
+    try {
+      savedTheme = localStorage.getItem('split-screen-theme');
+    } catch {
+      // Storage may be unavailable; default to light mode.
+    }
+    applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
+
+    // Start iframe navigation only after the load listeners and saved theme
+    // have been established.
+    loadFrame('left', leftURL);
+    loadFrame('right', rightURL);
+
+    themeToggle.addEventListener('click', () => {
+      const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+
+      // Persist first, then update the UI, then notify loaded iframes.
+      try {
+        localStorage.setItem('split-screen-theme', nextTheme);
+      } catch {
+        // Theme switching and messaging still work without storage.
+      }
+
+      applyTheme(nextTheme);
+      if (allFramesLoaded()) broadcastTheme(nextTheme);
+    });
+
+    // Drag the divider to resize the two panes.
+    const divider = document.getElementById('divider');
+    const main = document.querySelector('main');
+    const leftPane = document.querySelector('.pane:first-child');
+    const rightPane = document.querySelector('.pane:last-child');
+    let dragging = false;
+
+    function setSplitFromPointer(clientX) {
+      const bounds = main.getBoundingClientRect();
+      const dividerWidth = divider.getBoundingClientRect().width;
+      const availableWidth = Math.max(1, bounds.width - dividerWidth);
+      const leftPercent = ((clientX - bounds.left - dividerWidth / 2) / availableWidth) * 100;
+      const left = Math.max(10, Math.min(90, leftPercent));
+      leftPane.style.flex = `0 0 ${left}%`;
+      rightPane.style.flex = '1 1 0';
+    }
+
+    divider.addEventListener('pointerdown', event => {
+      dragging = true;
+      divider.classList.add('dragging');
+      divider.setPointerCapture(event.pointerId);
+      document.body.style.cursor = 'col-resize';
+      event.preventDefault();
+    });
+    divider.addEventListener('pointermove', event => {
+      if (dragging) setSplitFromPointer(event.clientX);
+    });
+    function stopDragging() {
+      dragging = false;
+      divider.classList.remove('dragging');
+      document.body.style.cursor = '';
+    }
+    divider.addEventListener('pointerup', stopDragging);
+    divider.addEventListener('pointercancel', stopDragging);
+    divider.addEventListener('keydown', event => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      const currentBasis = leftPane.style.flexBasis;
+      const current = currentBasis.endsWith('%') ? parseFloat(currentBasis) : 50;
+      const next = Math.max(10, Math.min(90, current + (event.key === 'ArrowRight' ? 2 : -2)));
+      leftPane.style.flex = `0 0 ${next}%`;
+      rightPane.style.flex = '1 1 0';
+    });
+  </script>
+</body>
+</html>
